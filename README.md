@@ -3,7 +3,7 @@
 [![Crates.io Version](https://img.shields.io/crates/v/constcat.svg)](https://crates.io/crates/constcat)
 [![Docs.rs Latest](https://img.shields.io/badge/docs.rs-latest-blue.svg)](https://docs.rs/constcat)
 
-`std::concat!` but with support for `const` variables and expressions.
+`std::concat!` with support for `const` variables and expressions.
 
 Works on stable Rust ✨.
 

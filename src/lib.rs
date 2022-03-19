@@ -1,7 +1,4 @@
-#![no_std]
-
-//! Provides a [`constcat!`] macro like [`std::concat!`] but with support for
-//! `const` expressions that return [`&str`][str].
+//! [`std::concat!`] with support for `const` variables and expressions.
 //!
 //! # Examples
 //!
@@ -17,6 +14,8 @@
 //!     "🎉"
 //! }
 //! ```
+
+#![no_std]
 
 /// Concatenate [`&str`][str] `const` expressions and literals into a static
 /// string slice.
