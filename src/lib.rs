@@ -1,3 +1,5 @@
+#![no_std]
+
 //! Provides a [`constcat!`] macro like [`std::concat!`] but with support for
 //! `const` expressions that return [`&str`][str].
 //!
@@ -63,7 +65,7 @@ macro_rules! __constcat {
             };
             // SAFETY: The original constants were asserted to be &str's
             // so the resultant bytes are valid UTF-8.
-            unsafe { std::mem::transmute::<&[u8], &str>(&ARR) }
+            unsafe { core::mem::transmute::<&[u8], &str>(&ARR) }
         }
         gen()
     }};
