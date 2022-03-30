@@ -1,4 +1,4 @@
-//! [`std::concat!`] with support for `const` variables and expressions.
+//! [`std::concat!`][core::concat!] with support for `const` variables and expressions.
 //!
 //! # Examples
 //!
@@ -31,50 +31,49 @@
 #[macro_export]
 macro_rules! constcat {
     ($($e:expr),* $(,)?) => {{
-        $crate::__constcat!($($e),*)
+        $crate::_constcat!($($e),*)
     }}
 }
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! __constcat {
-    ($($maybe:expr),*) => {{
-        $crate::__constcat!(impl $(
-            $crate::__maybe_concat!($maybe)
-        ),* )
+macro_rules! _constcat {
+    () => {
+        ""
+    };
+
+    ($($maybe:expr),+) => {{
+        $crate::_constcat!(@impl $($crate::_maybe_concat!($maybe)),*)
     }};
-    (impl $($s:expr),*) => {{
-        #[allow(unused_mut)] // for the empty case
-        const fn gen() -> &'static str {
+
+    (@impl $($s:expr),+) => {{
+        $(
+            const _: &str = $s; // require str constants
+        )*
+        const LEN: usize = $( $s.len() + )* 0;
+        const ARR: [u8; LEN] = {
+            let mut arr = [0u8; LEN];
+            let mut off = 0usize;
             $(
-                const _: &str = $s; // require constants
+                arr = $crate::copy_into(arr, off, $s.as_bytes());
+                off += $s.len();
             )*
-            const LEN: usize = $( $s.len() + )* 0;
-            const ARR: [u8; LEN] = {
-                let mut arr = [0u8; LEN];
-                let mut off = 0usize;
-                $(
-                    arr = $crate::copy_into(arr, off, $s.as_bytes());
-                    off += $s.len();
-                )*
-                if off != LEN {
-                    panic!("invalid length written");
-                }
-                arr
-            };
-            // SAFETY: The original constants were asserted to be &str's
-            // so the resultant bytes are valid UTF-8.
-            unsafe { core::mem::transmute::<&[u8], &str>(&ARR) }
-        }
-        gen()
+            if off != LEN {
+                ::core::panic!("invalid length written");
+            }
+            arr
+        };
+        // SAFETY: The original constants were asserted to be &str's
+        // so the resultant bytes are valid UTF-8.
+        unsafe { ::core::mem::transmute::<&[u8], &str>(&ARR) }
     }};
 }
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! __maybe_concat {
+macro_rules! _maybe_concat {
     ($e:literal) => {
-        concat!($e)
+        ::core::concat!($e)
     };
     ($e:expr) => {
         $e
@@ -106,16 +105,35 @@ mod tests {
         const TEST1: &str = constcat!();
         assert_eq!(TEST1, "");
 
-        const TEST2: &str = constcat!("one");
-        assert_eq!(TEST2, "one");
+        const TEST2: &str = constcat!(,);
+        assert_eq!(TEST2, "");
 
-        const TEST3: &str = constcat!("one", 2);
-        assert_eq!(TEST3, "one2");
+        const TEST3: &str = constcat!("one");
+        assert_eq!(TEST3, "one");
 
-        const TEST4: &str = constcat!("before ", TEST3, " after");
-        assert_eq!(TEST4, "before one2 after");
+        const TEST4: &str = constcat!("one",);
+        assert_eq!(TEST4, "one");
 
-        const TEST5: &str = constcat!("before ", env!("CARGO_PKG_NAME"), " after");
-        assert_eq!(TEST5, "before constcat after");
+        const TEST5: &str = constcat!("one", 2);
+        assert_eq!(TEST5, "one2");
+
+        const TEST6: &str = constcat!("before ", TEST5, " after");
+        assert_eq!(TEST6, "before one2 after");
+
+        const TEST7: &str = constcat!("before ", env!("CARGO_PKG_NAME"), " after");
+        assert_eq!(TEST7, "before constcat after");
+    }
+
+    #[test]
+    fn namespacing() {
+        #[allow(unused_imports)]
+        use core::array as core;
+
+        macro_rules! _maybe_concat {
+            () => {};
+        }
+
+        const TEST0: &str = constcat!("test", 10, 'b', true);
+        assert_eq!(TEST0, "test10btrue");
     }
 }
