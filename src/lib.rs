@@ -65,7 +65,7 @@ macro_rules! _constcat {
         };
         // SAFETY: The original constants were asserted to be &str's
         // so the resultant bytes are valid UTF-8.
-        unsafe { ::core::mem::transmute::<&[u8], &str>(&ARR) }
+        unsafe { ::core::str::from_utf8_unchecked(&ARR) }
     }};
 }
 
@@ -81,6 +81,7 @@ macro_rules! _maybe_concat {
 }
 
 #[doc(hidden)]
+#[allow(clippy::all)]
 pub const fn copy_into<const N: usize>(mut into: [u8; N], offset: usize, from: &[u8]) -> [u8; N] {
     let mut i = 0;
     loop {
