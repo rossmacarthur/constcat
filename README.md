@@ -14,7 +14,7 @@ Add `constcat` to your Cargo manifest.
 
 ```toml
 [dependencies]
-constcat = "0.1.0"
+constcat = "0.2.0"
 ```
 
 Import the macro using the following.
