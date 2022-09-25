@@ -25,17 +25,16 @@ use constcat::constcat;
 
 ## 🤸 Usage
 
+`constcat!` works exactly like `concat!` except you can now pass variables and
+constant expressions.
+
 ```rust
 use constcat::constcat;
 
-const EX: &str = constcat!("string", 10, 'c', true, 3.14, VARIABLE, expr());
-assert_eq!(EX, "string10ctrue3.14constcat🎉");
-
-const VARIABLE: &str = env!("CARGO_PKG_NAME");
-
-const fn expr() -> &'static str {
-    "🎉"
-}
+const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
+const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
+const fn tada() -> &'static str { "🎉" }
+const VERSION: &str = constcat!(CRATE_NAME, " ", CRATE_VERSION, tada());
 ```
 
 ## License
