@@ -1,4 +1,5 @@
-//! [`std::concat!`][core::concat!] with support for `const` variables and expressions.
+//! [`std::concat!`][core::concat!] with support for `const` variables and
+//! expressions.
 //!
 //! # Examples
 //!
@@ -9,9 +10,17 @@
 //! const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 //! const fn tada() -> &'static str { "🎉" }
 //! const VERSION: &str = concat!(CRATE_NAME, " ", CRATE_VERSION, tada());
+//!
+//! # assert_eq!(
+//! #     VERSION,
+//! #     std::concat!(env!("CARGO_PKG_NAME"), " ", env!("CARGO_PKG_VERSION"), "🎉"),
+//! # );
 //! ```
 
 #![no_std]
+
+#[doc(hidden)]
+pub use core;
 
 /// Concatenate [`&str`][str] `const` expressions and literals into a static
 /// string slice.
@@ -55,13 +64,13 @@ macro_rules! _concat {
                 off += $s.len();
             )*
             if off != LEN {
-                ::core::panic!("invalid length written");
+                $crate::core::panic!("invalid length written");
             }
             arr
         };
         // SAFETY: The original constants were asserted to be &str's
         // so the resultant bytes are valid UTF-8.
-        unsafe { ::core::str::from_utf8_unchecked(&ARR) }
+        unsafe { $crate::core::str::from_utf8_unchecked(&ARR) }
     }};
 }
 
@@ -69,7 +78,7 @@ macro_rules! _concat {
 #[macro_export]
 macro_rules! _maybe_std_concat {
     ($e:literal) => {
-        ::core::concat!($e)
+        $crate::core::concat!($e)
     };
     ($e:expr) => {
         $e
