@@ -3,12 +3,12 @@
 //! # Examples
 //!
 //! ```rust
-//! use constcat::constcat;
+//! use constcat::concat;
 //!
 //! const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 //! const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 //! const fn tada() -> &'static str { "🎉" }
-//! const VERSION: &str = constcat!(CRATE_NAME, " ", CRATE_VERSION, tada());
+//! const VERSION: &str = concat!(CRATE_NAME, " ", CRATE_VERSION, tada());
 //! ```
 
 #![no_std]
@@ -25,21 +25,21 @@
 ///
 /// See the [crate documentation][crate] for examples.
 #[macro_export]
-macro_rules! constcat {
+macro_rules! concat {
     ($($e:expr),* $(,)?) => {{
-        $crate::_constcat!($($e),*)
+        $crate::_concat!($($e),*)
     }}
 }
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! _constcat {
+macro_rules! _concat {
     () => {
         ""
     };
 
     ($($maybe:expr),+) => {{
-        $crate::_constcat!(@impl $($crate::_maybe_concat!($maybe)),*)
+        $crate::_concat!(@impl $($crate::_maybe_std_concat!($maybe)),*)
     }};
 
     (@impl $($s:expr),+) => {{
@@ -67,7 +67,7 @@ macro_rules! _constcat {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! _maybe_concat {
+macro_rules! _maybe_std_concat {
     ($e:literal) => {
         ::core::concat!($e)
     };
@@ -96,28 +96,28 @@ mod tests {
 
     #[test]
     fn smoke() {
-        const TEST0: &str = constcat!("test", 10, 'b', true);
+        const TEST0: &str = concat!("test", 10, 'b', true);
         assert_eq!(TEST0, "test10btrue");
 
-        const TEST1: &str = constcat!();
+        const TEST1: &str = concat!();
         assert_eq!(TEST1, "");
 
-        const TEST2: &str = constcat!(,);
+        const TEST2: &str = concat!(,);
         assert_eq!(TEST2, "");
 
-        const TEST3: &str = constcat!("one");
+        const TEST3: &str = concat!("one");
         assert_eq!(TEST3, "one");
 
-        const TEST4: &str = constcat!("one",);
+        const TEST4: &str = concat!("one",);
         assert_eq!(TEST4, "one");
 
-        const TEST5: &str = constcat!("one", 2);
+        const TEST5: &str = concat!("one", 2);
         assert_eq!(TEST5, "one2");
 
-        const TEST6: &str = constcat!("before ", TEST5, " after");
+        const TEST6: &str = concat!("before ", TEST5, " after");
         assert_eq!(TEST6, "before one2 after");
 
-        const TEST7: &str = constcat!("before ", env!("CARGO_PKG_NAME"), " after");
+        const TEST7: &str = concat!("before ", env!("CARGO_PKG_NAME"), " after");
         assert_eq!(TEST7, "before constcat after");
     }
 
@@ -130,7 +130,7 @@ mod tests {
             () => {};
         }
 
-        const TEST0: &str = constcat!("test", 10, 'b', true);
+        const TEST0: &str = concat!("test", 10, 'b', true);
         assert_eq!(TEST0, "test10btrue");
     }
 }

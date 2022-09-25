@@ -20,21 +20,21 @@ constcat = "0.1.0"
 Import the macro using the following.
 
 ```rust
-use constcat::constcat;
+use constcat::concat;
 ```
 
 ## 🤸 Usage
 
-`constcat!` works exactly like `concat!` except you can now pass variables and
+`concat!` works exactly like `std::concat!` except you can now pass variables and
 constant expressions.
 
 ```rust
-use constcat::constcat;
+use constcat::concat;
 
 const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const fn tada() -> &'static str { "🎉" }
-const VERSION: &str = constcat!(CRATE_NAME, " ", CRATE_VERSION, tada());
+const VERSION: &str = concat!(CRATE_NAME, " ", CRATE_VERSION, tada());
 ```
 
 ## License
