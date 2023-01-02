@@ -50,7 +50,7 @@
 //! [`std::concat_bytes!`]: core::concat_bytes
 
 #![no_std]
-#![cfg_attr(feature = "bytes", feature(concat_bytes))]
+#![cfg_attr(all(test, feature = "bytes"), feature(concat_bytes))]
 
 #[doc(hidden)]
 pub use core;
