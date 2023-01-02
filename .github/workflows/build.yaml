@@ -14,19 +14,22 @@ jobs:
         toolchain: [stable, beta, nightly]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - name: Setup Rust
-      run: |
-        rustup set profile default
-        rustup toolchain install ${{ matrix.toolchain }}
-        rustup override set ${{ matrix.toolchain }}
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.toolchain }}
+        components: clippy, rustfmt
 
     - name: Rustfmt
       run: cargo fmt -- --check
 
     - name: Clippy
-      run: cargo clippy --workspace
+      run: cargo clippy --workspace --no-default-features
+
+    - name: Test (no default features)
+      run: cargo test --workspace --no-default-features --lib
 
     - name: Test
+      if: matrix.toolchain == 'nightly'
       run: cargo test --workspace

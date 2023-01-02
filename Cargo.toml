@@ -9,3 +9,9 @@ repository = "https://github.com/rossmacarthur/constcat"
 license = "MIT OR Apache-2.0"
 keywords = ["concat", "const"]
 categories = ["no-std", "rust-patterns"]
+
+[features]
+default = ["bytes"]
+
+# Adds support for the concat_bytes! macro
+bytes = []

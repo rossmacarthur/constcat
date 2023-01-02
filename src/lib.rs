@@ -50,10 +50,7 @@
 //! [`std::concat_bytes!`]: core::concat_bytes
 
 #![no_std]
-#![cfg_attr(test, feature(concat_bytes))]
-
-#[cfg(test)]
-extern crate std;
+#![cfg_attr(feature = "bytes", feature(concat_bytes))]
 
 #[doc(hidden)]
 pub use core;
@@ -138,6 +135,7 @@ macro_rules! _maybe_std_concat {
 /// literals directly like `[b'A', 32, b'B']` instead you have to pass a slice like
 /// `&[b'A', 32, b'B']`.
 #[macro_export]
+#[cfg(feature = "bytes")]
 macro_rules! concat_bytes {
     ($($e:expr),* $(,)?) => {{
         $crate::_concat_bytes!($($e),*)
@@ -146,6 +144,7 @@ macro_rules! concat_bytes {
 
 #[doc(hidden)]
 #[macro_export]
+#[cfg(feature = "bytes")]
 macro_rules! _concat_bytes {
     () => { b"" };
 
@@ -160,6 +159,7 @@ macro_rules! _concat_bytes {
 
 #[doc(hidden)]
 #[macro_export]
+#[cfg(feature = "bytes")]
 macro_rules! _maybe_std_concat_bytes {
     ($e:literal) => {
         $crate::core::concat_bytes!($e)
@@ -231,6 +231,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "bytes")]
     fn concat_bytes_smoke() {
         const TEST0: &[u8] = concat_bytes!(b"test", b'b', &[68, b'E', 70]);
         assert_eq!(TEST0, b"testbDEF");
