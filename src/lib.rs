@@ -90,7 +90,7 @@ macro_rules! _concat {
         $(
             const _: &str = $s; // require str constants
         )*
-        let slice: &[u8] = $crate::_concat_slices!(&[u8]: $($s.as_bytes()),+);
+        let slice: &[u8] = $crate::concat_slices!([u8]: $($s.as_bytes()),+);
         // SAFETY: The original constants were asserted to be &str's
         // so the resultant bytes are valid UTF-8.
         unsafe { $crate::core::str::from_utf8_unchecked(slice) }
@@ -132,8 +132,8 @@ macro_rules! _maybe_std_concat {
 /// ```
 ///
 /// Unlike the standard library macro this macro does not accept byte array
-/// literals directly like `[b'A', 32, b'B']` instead you have to pass a slice like
-/// `&[b'A', 32, b'B']`.
+/// literals directly like `[b'A', 32, b'B']` instead you have to pass a slice
+/// like `&[b'A', 32, b'B']`.
 #[macro_export]
 #[cfg(feature = "bytes")]
 macro_rules! concat_bytes {
@@ -153,7 +153,7 @@ macro_rules! _concat_bytes {
     }};
 
     (@impl $($s:expr),+) => {{
-        $crate::_concat_slices!(&[u8]: $($s),+)
+        $crate::concat_slices!([u8]: $($s),+)
     }};
 }
 
@@ -170,19 +170,52 @@ macro_rules! _maybe_std_concat_bytes {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Utilities
+// concat_slices!
 ////////////////////////////////////////////////////////////////////////////////
 
-#[doc(hidden)]
+/// Concatenate `const` [`&[T]`][slice] expressions and literals into a static
+/// slice.
+///
+/// This macro takes any number of comma-separated literals or constant
+/// expressions and yields an expression of type [`&'static [T]`][slice] which
+/// represents all of the literals and expressions concatenated left-to-right.
+///
+/// - The macro requires that type of slice be specified, e.g. `[usize]` or
+///   `[u8]` before the comma separate expressions.
+/// - You can optionally provide an initializer for non-integer types, e.g.
+///   `[0.0; f32]` for floating point numbers, `[false; bool]` for `bool`s, or
+///   `['\x00'; char]` for `char`s.
+///
+/// # Examples
+///
+/// Basic usage with integers:
+///
+/// ```
+/// # use constcat::concat_slices;
+/// #
+/// const fn more() -> &'static [i32] { &[4, 5, 6] }
+/// const EXAMPLE: &[i32] = concat_slices!([i32]: &[1, 2, 3], more());
+/// assert_eq!(EXAMPLE, [1, 2, 3, 4, 5, 6])
+/// ```
+///
+/// With a constant initializer:
+///
+/// ```
+/// # use constcat::concat_slices;
+/// #
+/// const fn more() -> &'static [f32] { &[4.0, 5.0, 6.0] }
+/// const EXAMPLE: &[f32] = concat_slices!([0.0; f32]: &[1.0, 2.0, 3.0], more());
+/// assert_eq!(EXAMPLE, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+/// ```
 #[macro_export]
-macro_rules! _concat_slices {
-    (&[$ty:ty]: $($s:expr),+) => {{
+macro_rules! concat_slices {
+    ([$init:expr; $T:ty]: $($s:expr),+ $(,)?) => {{
         $(
-            const _: &[$ty] = $s; // require constants
+            const _: &[$T] = $s; // require constants
         )*
         const LEN: usize = $( $s.len() + )* 0;
-        const ARR: [$ty; LEN] = {
-            let mut arr: [$ty; LEN] = [0; LEN];
+        const ARR: [$T; LEN] = {
+            let mut arr: [$T; LEN] = [$init; LEN];
             let mut base: usize = 0;
             $({
                 let mut i = 0;
@@ -196,7 +229,11 @@ macro_rules! _concat_slices {
             arr
         };
         &ARR
-    }}
+    }};
+
+    ([$T:ty]: $($s:expr),+ $(,)?) => {
+        $crate::concat_slices!([0; $T]: $($s),+)
+    };
 }
 
 #[cfg(test)]
@@ -253,6 +290,33 @@ mod tests {
 
         const TEST6: &[u8] = concat_bytes!(b"before ", TEST5, b" after");
         assert_eq!(TEST6, b"before one2 after");
+    }
+
+    #[test]
+    fn concat_slices_smoke() {
+        const TEST0: &[i32] = concat_slices!([i32]: &[1, 2, 3]);
+        assert_eq!(TEST0, [1, 2, 3]);
+
+        const TEST1: &[i32] = concat_slices!([i32]: &[1, 2, 3],);
+        assert_eq!(TEST1, [1, 2, 3]);
+
+        const TEST2: &[i32] = concat_slices!([i32]: &[1, 2, 3], TEST1);
+        assert_eq!(TEST2, [1, 2, 3, 1, 2, 3]);
+
+        const TEST3: &[f32] = concat_slices!([0.; f32]: &[1.], &[2.], &[3.]);
+        assert_eq!(TEST3, [1., 2., 3.]);
+
+        const TEST4: &[char] = concat_slices!(['\x00'; char]: &['a'], &['b'], &['c']);
+        assert_eq!(TEST4, ['a', 'b', 'c']);
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct I(i32);
+        const TEST5: &[I] = concat_slices!([I(0); I]: &[I(1), I(2), I(3)]);
+        assert_eq!(TEST5, [I(1), I(2), I(3)]);
+
+        const DEF: I = I(123);
+        const TEST6: &[I] = concat_slices!([DEF; I]: &[I(1), I(2), I(3)]);
+        assert_eq!(TEST6, [I(1), I(2), I(3)]);
     }
 
     #[test]
