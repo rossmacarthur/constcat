@@ -50,7 +50,6 @@
 //! [`std::concat_bytes!`]: core::concat_bytes
 
 #![no_std]
-#![cfg_attr(all(test, feature = "bytes"), feature(concat_bytes))]
 
 #[doc(hidden)]
 pub use core;
@@ -65,9 +64,9 @@ pub use core;
 /// This macro takes any number of comma-separated literals or constant
 /// expressions and yields an expression of type [`&'static str`][str] which
 /// represents all of the literals and expressions concatenated left-to-right.
-///
 /// Integer, floating point, and boolean literals are stringified in order to be
-/// concatenated.
+/// concatenated. Finally, each expression is converted to a byte slice and
+/// concatenated using [`concat_slices!`].
 ///
 /// See the [crate documentation][crate] for examples.
 #[macro_export]
@@ -118,10 +117,12 @@ macro_rules! _maybe_std_concat {
 /// This macro takes any number of comma-separated literals or constant
 /// expressions and yields an expression of type [`&'static [u8]`][slice] which
 /// represents all of the literals and expressions concatenated left-to-right.
+/// Literals are converted using [`core::concat_bytes!`] and then each
+/// expression is concatenated using [`concat_slices!`].
 ///
 /// See the [crate documentation][crate] for examples.
 ///
-/// # Note
+/// # Stability note
 ///
 /// 🔬 This macro uses a nightly-only experimental API, [`core::concat_bytes`],
 /// for processing byte literals, until it is stabilized you will need to add
@@ -173,18 +174,18 @@ macro_rules! _maybe_std_concat_bytes {
 // concat_slices!
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Concatenate `const` [`&[T]`][slice] expressions and literals into a static
-/// slice.
+/// Concatenate `const` [`&[T]`][slice] expressions into a static slice.
 ///
-/// This macro takes any number of comma-separated literals or constant
-/// expressions and yields an expression of type [`&'static [T]`][slice] which
-/// represents all of the literals and expressions concatenated left-to-right.
-///
+/// - This macro takes any number of comma-separated [`&[T]`][slice] expressions
+///   and yields an expression of type [`&'static [T]`][slice] which represents
+///   all of the expressions concatenated left-to-right.
 /// - The macro requires that type of slice be specified, e.g. `[usize]` or
 ///   `[u8]` before the comma separate expressions.
 /// - You can optionally provide an initializer for non-integer types, e.g.
 ///   `[0.0; f32]` for floating point numbers, `[false; bool]` for `bool`s, or
-///   `['\x00'; char]` for `char`s.
+///   `['\x00'; char]` for `char`s. This also works for custom types as long as
+///   the type and initializer expression is able to be specified in an array
+///   initializer expression.
 ///
 /// # Examples
 ///
@@ -234,101 +235,4 @@ macro_rules! concat_slices {
     ([$T:ty]: $($s:expr),+ $(,)?) => {
         $crate::concat_slices!([0; $T]: $($s),+)
     };
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn concat_smoke() {
-        const TEST0: &str = concat!("test", 10, 'b', true);
-        assert_eq!(TEST0, "test10btrue");
-
-        const TEST1: &str = concat!();
-        assert_eq!(TEST1, "");
-
-        const TEST2: &str = concat!(,);
-        assert_eq!(TEST2, "");
-
-        const TEST3: &str = concat!("one");
-        assert_eq!(TEST3, "one");
-
-        const TEST4: &str = concat!("one",);
-        assert_eq!(TEST4, "one");
-
-        const TEST5: &str = concat!("one", 2);
-        assert_eq!(TEST5, "one2");
-
-        const TEST6: &str = concat!("before ", TEST5, " after");
-        assert_eq!(TEST6, "before one2 after");
-
-        const TEST7: &str = concat!("before ", env!("CARGO_PKG_NAME"), " after");
-        assert_eq!(TEST7, "before constcat after");
-    }
-
-    #[test]
-    #[cfg(feature = "bytes")]
-    fn concat_bytes_smoke() {
-        const TEST0: &[u8] = concat_bytes!(b"test", b'b', &[68, b'E', 70]);
-        assert_eq!(TEST0, b"testbDEF");
-
-        const TEST1: &[u8] = concat_bytes!();
-        assert_eq!(TEST1, b"");
-
-        const TEST2: &[u8] = concat_bytes!(,);
-        assert_eq!(TEST2, b"");
-
-        const TEST3: &[u8] = concat_bytes!(b"one");
-        assert_eq!(TEST3, b"one");
-
-        const TEST4: &[u8] = concat_bytes!(b"one",);
-        assert_eq!(TEST4, b"one");
-
-        const TEST5: &[u8] = concat_bytes!(b"one", b'2');
-        assert_eq!(TEST5, b"one2");
-
-        const TEST6: &[u8] = concat_bytes!(b"before ", TEST5, b" after");
-        assert_eq!(TEST6, b"before one2 after");
-    }
-
-    #[test]
-    fn concat_slices_smoke() {
-        const TEST0: &[i32] = concat_slices!([i32]: &[1, 2, 3]);
-        assert_eq!(TEST0, [1, 2, 3]);
-
-        const TEST1: &[i32] = concat_slices!([i32]: &[1, 2, 3],);
-        assert_eq!(TEST1, [1, 2, 3]);
-
-        const TEST2: &[i32] = concat_slices!([i32]: &[1, 2, 3], TEST1);
-        assert_eq!(TEST2, [1, 2, 3, 1, 2, 3]);
-
-        const TEST3: &[f32] = concat_slices!([0.; f32]: &[1.], &[2.], &[3.]);
-        assert_eq!(TEST3, [1., 2., 3.]);
-
-        const TEST4: &[char] = concat_slices!(['\x00'; char]: &['a'], &['b'], &['c']);
-        assert_eq!(TEST4, ['a', 'b', 'c']);
-
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        struct I(i32);
-        const TEST5: &[I] = concat_slices!([I(0); I]: &[I(1), I(2), I(3)]);
-        assert_eq!(TEST5, [I(1), I(2), I(3)]);
-
-        const DEF: I = I(123);
-        const TEST6: &[I] = concat_slices!([DEF; I]: &[I(1), I(2), I(3)]);
-        assert_eq!(TEST6, [I(1), I(2), I(3)]);
-    }
-
-    #[test]
-    fn concat_namespacing() {
-        #[allow(unused_imports)]
-        use core::array as core;
-
-        macro_rules! _maybe_concat {
-            () => {};
-        }
-
-        const TEST0: &str = concat!("test", 10, 'b', true);
-        assert_eq!(TEST0, "test10btrue");
-    }
 }

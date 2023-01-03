@@ -28,7 +28,7 @@ jobs:
       run: cargo clippy --workspace --no-default-features
 
     - name: Test (no default features)
-      run: cargo test --workspace --no-default-features --lib
+      run: cargo test --workspace --no-default-features --lib --test '*'
 
     - name: Test
       if: matrix.toolchain == 'nightly'
