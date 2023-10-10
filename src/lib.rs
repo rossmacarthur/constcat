@@ -232,6 +232,18 @@ macro_rules! concat_slices {
         &ARR
     }};
 
+    ([char]: $($s:expr),+ $(,)?) => {
+        $crate::concat_slices!(['\x00'; char]: $($s),+)
+    };
+
+    ([f32]: $($s:expr),+ $(,)?) => {
+        $crate::concat_slices!([0.0; f32]: $($s),+)
+    };
+
+    ([f64]: $($s:expr),+ $(,)?) => {
+        $crate::concat_slices!([0.0; f64]: $($s),+)
+    };
+
     ([$T:ty]: $($s:expr),+ $(,)?) => {
         $crate::concat_slices!([0; $T]: $($s),+)
     };
