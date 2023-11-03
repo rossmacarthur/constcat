@@ -18,8 +18,11 @@
 //!
 //! # 🤸 Usage
 //!
-//! [`concat!`] works exactly like [`std::concat!`] except you can
-//! now pass variables and constant expressions. For example:
+//! ## String slices
+//!
+//! [`concat!`] works exactly like [`std::concat!`], concatenating [`&str`][str]
+//! literals into a static string slice, except you can now pass variables and
+//! constant expressions.
 //!
 //! ```
 //! # use constcat::concat;
@@ -28,15 +31,12 @@
 //! const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 //! const fn tada() -> &'static str { "🎉" }
 //! const VERSION: &str = concat!(CRATE_NAME, " ", CRATE_VERSION, tada());
-//! #
-//! # assert_eq!(
-//! #     VERSION,
-//! #     std::concat!(env!("CARGO_PKG_NAME"), " ", env!("CARGO_PKG_VERSION"), "🎉"),
-//! # );
 //! ```
 //!
-//! [`concat_bytes!`] works similarly except it yields a static byte slice. For
-//! example:
+//! ## Byte slices
+//!
+//! [`concat_bytes!`] works similarly to [`concat!`], concatenating `const`
+//! [`&[u8]`][slice] expressions and literals into a static byte slice.
 //!
 //! ```
 //! # use constcat::concat_bytes;
@@ -44,6 +44,36 @@
 //! const VERSION: u32 = 1;
 //! const fn entries() -> &'static [u8] { b"example" }
 //! const HEADER: &[u8] = concat_bytes!(&VERSION.to_le_bytes(), entries());
+//! ```
+//!
+//! ## `T` slices
+//!
+//! [`concat_slices!`] is the underlying macro used for both of the above, this
+//! can be used to concatenate `const` [`&[T]`][slice] expressions into a static
+//! slice.
+//!
+//! This macro requires the type of slice to be specified in the form `[T]: `
+//! before the comma separated expressions.
+//!
+//! ```
+//! # use constcat::concat_slices;
+//! #
+//! const MAGIC: &[i32; 4] = &[1, 3, 3, 7];
+//! const VERSION: i32 = 1;
+//! const HEADER: &[i32] = concat_slices!([i32]: MAGIC, &[0, VERSION]);
+//! ```
+//!
+//! If the type is not a std integer, `f32`, `f64`, or `char` type then you must
+//! also provide an initializer expression with the type, in the form `[init;
+//! T]: `. This also works for custom types as long as the type and initializer
+//! expression is able to be specified in an array initializer expression.
+//!
+//! ```
+//! # use constcat::concat_slices;
+//! #
+//! const PRIMARIES: &'static [(u8, u8, u8)] = &[(255, 0, 0), (0, 255, 0), (0, 0, 255)];
+//! const SECONDARIES: &'static [(u8, u8, u8)] = &[(255, 255, 0), (255, 0, 255), (0, 255, 255)];
+//! const COLORS: &[(u8, u8, u8)] = concat_slices!([(0, 0, 0); (u8, u8, u8)]: PRIMARIES, SECONDARIES);
 //! ```
 //!
 //! [`std::concat!`]: core::concat
@@ -62,18 +92,20 @@ pub use core;
 /// string slice.
 ///
 /// This macro takes any number of comma-separated literals or constant
-/// expressions and yields an expression of type [`&'static str`][str] which
-/// represents all of the literals and expressions concatenated left-to-right.
-/// Integer, floating point, and boolean literals are stringified in order to be
-/// concatenated. Finally, each expression is converted to a byte slice and
-/// concatenated using [`concat_slices!`].
+/// expressions and yields an expression of type [`&'static str`][str] which is
+/// the result of all of the literals and expressions concatenated
+/// left-to-right. Literals are first converted using [`std::concat!`]. Finally,
+/// each expression is converted to a byte slice and concatenated using
+/// [`concat_slices!`].
 ///
 /// See the [crate documentation][crate] for examples.
+///
+/// [`std::concat!`]: core::concat
 #[macro_export]
 macro_rules! concat {
-    ($($e:expr),* $(,)?) => {{
+    ($($e:expr),* $(,)?) => {
         $crate::_concat!($($e),*)
-    }}
+    }
 }
 
 #[doc(hidden)]
@@ -116,9 +148,9 @@ macro_rules! _maybe_std_concat {
 ///
 /// This macro takes any number of comma-separated literals or constant
 /// expressions and yields an expression of type [`&'static [u8]`][slice] which
-/// represents all of the literals and expressions concatenated left-to-right.
-/// Literals are converted using [`std::concat_bytes!`] and then each expression
-/// is concatenated using [`concat_slices!`].
+/// is the result of all of the literals and expressions concatenated
+/// left-to-right. Literals are first converted using [`std::concat_bytes!`].
+/// Finally, each expression is concatenated using [`concat_slices!`].
 ///
 /// See the [crate documentation][crate] for examples.
 ///
@@ -126,7 +158,8 @@ macro_rules! _maybe_std_concat {
 ///
 /// 🔬 This macro uses a nightly-only experimental API, [`std::concat_bytes!`],
 /// for processing byte literals, until it is stabilized you will need to add
-/// the following to the root of your crate.
+/// the following to the root of your crate. This is only required if you pass
+/// any byte literals to the macro.
 ///
 /// ```text
 /// #![feature(concat_bytes)]
@@ -138,13 +171,12 @@ macro_rules! _maybe_std_concat {
 /// literals directly like `[b'A', 32, b'B']` instead you have to pass a slice
 /// like `&[b'A', 32, b'B']`.
 ///
-/// [`std::concat!`]: core::concat
 /// [`std::concat_bytes!`]: core::concat_bytes
 #[macro_export]
 macro_rules! concat_bytes {
-    ($($e:expr),* $(,)?) => {{
+    ($($e:expr),* $(,)?) => {
         $crate::_concat_bytes!($($e),*)
-    }}
+    }
 }
 
 #[doc(hidden)]
@@ -178,41 +210,76 @@ macro_rules! _maybe_std_concat_bytes {
 
 /// Concatenate `const` [`&[T]`][slice] expressions into a static slice.
 ///
-/// - This macro takes any number of comma-separated [`&[T]`][slice] expressions
-///   and yields an expression of type [`&'static [T]`][slice] which represents
-///   all of the expressions concatenated left-to-right.
-/// - The macro requires that type of slice be specified, e.g. `[usize]` or
-///   `[u8]` before the comma separate expressions.
-/// - You can optionally provide an initializer for non-integer types, e.g.
-///   `[0.0; f32]` for floating point numbers, `[false; bool]` for `bool`s, or
-///   `['\x00'; char]` for `char`s. This also works for custom types as long as
-///   the type and initializer expression is able to be specified in an array
-///   initializer expression.
+/// This macro takes any number of comma-separated [`&[T]`][slice] expressions
+/// and yields an expression of type [`&'static [T]`][slice] which is the result
+/// of all of the expressions concatenated left-to-right.
 ///
-/// # Examples
+/// # Notes
 ///
-/// Basic usage with integers:
+/// - This macro requires that the type of slice be specified before the comma
+///   separated expressions. This must be in the form `[T]: ` where `T` is the
+///   the type.
 ///
-/// ```
-/// # use constcat::concat_slices;
-/// #
-/// const fn more() -> &'static [i32] { &[4, 5, 6] }
-/// const EXAMPLE: &[i32] = concat_slices!([i32]: &[1, 2, 3], more());
-/// assert_eq!(EXAMPLE, [1, 2, 3, 4, 5, 6])
-/// ```
+///   ```
+///   # use constcat::concat_slices;
+///   concat_slices!([usize]: /* ... */);
+///   ```
 ///
-/// With a constant initializer:
+/// - If the type is not a std integer, `f32`, `f64`, or `char` type then you
+///   must also provide an initializer expression.
 ///
-/// ```
-/// # use constcat::concat_slices;
-/// #
-/// const fn more() -> &'static [f32] { &[4.0, 5.0, 6.0] }
-/// const EXAMPLE: &[f32] = concat_slices!([0.0; f32]: &[1.0, 2.0, 3.0], more());
-/// assert_eq!(EXAMPLE, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-/// ```
+///   ```
+///   # use constcat::concat_slices;
+///   concat_slices!([(0, 0, 0); (u8, u8, u8)]: /* ... */);
+///   ```
+/// - This also works for custom types as long as the type and initializer
+///   expression is able to be specified in an array initializer expression.
+///
+///   ```
+///   # use constcat::concat_slices;
+///   #[derive(Clone, Copy)]
+///   struct i256(i128, i128);
+///
+///   impl i256 {
+///       const fn new() -> Self { Self(0, 0) }
+///   }
+///
+///   concat_slices!([i256::new(); i256]: /* ... */);
+///   ```
+///
+/// See the [crate documentation][crate] for examples.
 #[macro_export]
 macro_rules! concat_slices {
-    ([$init:expr; $T:ty]: $($s:expr),+ $(,)?) => {{
+    ([$init:expr; $T:ty]: $($s:expr),* $(,)?) => {
+        $crate::_concat_slices!([$init; $T]: $($s),*)
+    };
+
+    ([char]: $($s:expr),* $(,)?) => {
+        $crate::concat_slices!(['\x00'; char]: $($s),*)
+    };
+
+    ([f32]: $($s:expr),* $(,)?) => {
+        $crate::concat_slices!([0.0; f32]: $($s),*)
+    };
+
+    ([f64]: $($s:expr),* $(,)?) => {
+        $crate::concat_slices!([0.0; f64]: $($s),*)
+    };
+
+    ([$T:ty]: $($s:expr),* $(,)?) => {
+        $crate::concat_slices!([0; $T]: $($s),*)
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _concat_slices {
+    ([$init:expr; $T:ty]:) => {{
+        const ARR: [$T; 0] = [];
+        &ARR
+    }};
+
+    ([$init:expr; $T:ty]: $($s:expr),+) => {{
         $(
             const _: &[$T] = $s; // require constants
         )*
@@ -233,20 +300,4 @@ macro_rules! concat_slices {
         };
         &ARR
     }};
-
-    ([char]: $($s:expr),+ $(,)?) => {
-        $crate::concat_slices!(['\x00'; char]: $($s),+)
-    };
-
-    ([f32]: $($s:expr),+ $(,)?) => {
-        $crate::concat_slices!([0.0; f32]: $($s),+)
-    };
-
-    ([f64]: $($s:expr),+ $(,)?) => {
-        $crate::concat_slices!([0.0; f64]: $($s),+)
-    };
-
-    ([$T:ty]: $($s:expr),+ $(,)?) => {
-        $crate::concat_slices!([0; $T]: $($s),+)
-    };
 }

@@ -2,9 +2,9 @@
 
 # constcat
 
-[![Crates.io Version](https://img.shields.io/crates/v/constcat.svg)](https://crates.io/crates/constcat)
-[![Docs.rs Latest](https://img.shields.io/badge/docs.rs-latest-blue.svg)](https://docs.rs/constcat)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/rossmacarthur/constcat/build.yaml?branch=trunk)](https://github.com/rossmacarthur/constcat/actions/workflows/build.yaml?query=branch%3Atrunk)
+[![Crates.io Version](https://badgers.space/crates/version/constcat)](https://crates.io/crates/constcat)
+[![Docs.rs Latest](https://badgers.space/badge/docs.rs/latest/blue)](https://docs.rs/constcat)
+[![Build Status](https://badgers.space/github/checks/rossmacarthur/constcat?label=build)](https://github.com/rossmacarthur/constcat/actions/workflows/build.yaml)
 
 [`std::concat!`] with support for `const` variables and expressions.
 
@@ -28,8 +28,11 @@ use constcat::concat;
 
 ## 🤸 Usage
 
-`concat!` works exactly like [`std::concat!`] except you can
-now pass variables and constant expressions. For example:
+### String slices
+
+`concat!` works exactly like [`std::concat!`], concatenating `&str`
+literals into a static string slice, except you can now pass variables and
+constant expressions.
 
 ```rust
 const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
@@ -38,13 +41,40 @@ const fn tada() -> &'static str { "🎉" }
 const VERSION: &str = concat!(CRATE_NAME, " ", CRATE_VERSION, tada());
 ```
 
-`concat_bytes!` works similarly except it yields a static byte slice. For
-example:
+### Byte slices
+
+`concat_bytes!` works similarly to `concat!`, concatenating `const`
+`&[u8]` expressions and literals into a static byte slice.
 
 ```rust
 const VERSION: u32 = 1;
 const fn entries() -> &'static [u8] { b"example" }
 const HEADER: &[u8] = concat_bytes!(&VERSION.to_le_bytes(), entries());
+```
+
+### `T` slices
+
+`concat_slices!` is the underlying macro used for both of the above, this
+can be used to concatenate `const` `&[T]` expressions into a static
+slice.
+
+This macro requires the type of slice to be specified in the form `[T]: `
+before the comma separated expressions.
+
+```rust
+const MAGIC: &[i32; 4] = &[1, 3, 3, 7];
+const VERSION: i32 = 1;
+const HEADER: &[i32] = concat_slices!([i32]: MAGIC, &[0, VERSION]);
+```
+
+If the type is not a std integer, `f32`, `f64`, or `char` type then you must
+also provide an initializer expression with the type, in the form `[init; T]: `. This also works for custom types as long as the type and initializer
+expression is able to be specified in an array initializer expression.
+
+```rust
+const PRIMARIES: &'static [(u8, u8, u8)] = &[(255, 0, 0), (0, 255, 0), (0, 0, 255)];
+const SECONDARIES: &'static [(u8, u8, u8)] = &[(255, 255, 0), (255, 0, 255), (0, 255, 255)];
+const COLORS: &[(u8, u8, u8)] = concat_slices!([(0, 0, 0); (u8, u8, u8)]: PRIMARIES, SECONDARIES);
 ```
 
 [`std::concat!`]: core::concat
