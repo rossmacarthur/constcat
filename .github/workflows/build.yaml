@@ -25,11 +25,12 @@ jobs:
       run: cargo fmt -- --check
 
     - name: Clippy
-      run: cargo clippy --workspace --no-default-features
+      run: cargo clippy --workspace --all-targets
 
-    - name: Test (no default features)
-      run: cargo test --workspace --no-default-features --lib --test '*'
+    - name: Test
+      if: matrix.toolchain != 'nightly'
+      run: cargo test --workspace
 
     - name: Test
       if: matrix.toolchain == 'nightly'
-      run: cargo test --workspace
+      run: cargo test --workspace --features _bytes

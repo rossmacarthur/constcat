@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "bytes", feature(concat_bytes))]
+#![cfg_attr(feature = "_bytes", feature(concat_bytes))]
 
 #[test]
 fn concat_smoke() {
@@ -30,7 +30,7 @@ fn concat_smoke() {
 }
 
 #[test]
-#[cfg(feature = "bytes")]
+#[cfg(feature = "_bytes")]
 fn concat_bytes_smoke() {
     use constcat::concat_bytes;
 

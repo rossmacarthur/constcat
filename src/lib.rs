@@ -117,26 +117,30 @@ macro_rules! _maybe_std_concat {
 /// This macro takes any number of comma-separated literals or constant
 /// expressions and yields an expression of type [`&'static [u8]`][slice] which
 /// represents all of the literals and expressions concatenated left-to-right.
-/// Literals are converted using [`core::concat_bytes!`] and then each
-/// expression is concatenated using [`concat_slices!`].
+/// Literals are converted using [`std::concat_bytes!`] and then each expression
+/// is concatenated using [`concat_slices!`].
 ///
 /// See the [crate documentation][crate] for examples.
 ///
 /// # Stability note
 ///
-/// 🔬 This macro uses a nightly-only experimental API, [`core::concat_bytes`],
+/// 🔬 This macro uses a nightly-only experimental API, [`std::concat_bytes!`],
 /// for processing byte literals, until it is stabilized you will need to add
 /// the following to the root of your crate.
 ///
-/// ```
+/// ```text
 /// #![feature(concat_bytes)]
 /// ```
+///
+/// # Differences to `std`
 ///
 /// Unlike the standard library macro this macro does not accept byte array
 /// literals directly like `[b'A', 32, b'B']` instead you have to pass a slice
 /// like `&[b'A', 32, b'B']`.
+///
+/// [`std::concat!`]: core::concat
+/// [`std::concat_bytes!`]: core::concat_bytes
 #[macro_export]
-#[cfg(feature = "bytes")]
 macro_rules! concat_bytes {
     ($($e:expr),* $(,)?) => {{
         $crate::_concat_bytes!($($e),*)
@@ -145,7 +149,6 @@ macro_rules! concat_bytes {
 
 #[doc(hidden)]
 #[macro_export]
-#[cfg(feature = "bytes")]
 macro_rules! _concat_bytes {
     () => { b"" };
 
@@ -160,7 +163,6 @@ macro_rules! _concat_bytes {
 
 #[doc(hidden)]
 #[macro_export]
-#[cfg(feature = "bytes")]
 macro_rules! _maybe_std_concat_bytes {
     ($e:literal) => {
         $crate::core::concat_bytes!($e)

@@ -11,7 +11,5 @@ keywords = ["concat", "const"]
 categories = ["no-std", "rust-patterns"]
 
 [features]
-default = ["bytes"]
-
-# Adds support for the concat_bytes! macro
-bytes = []
+# Private API: compiles the tests for the concat_bytes! macro
+_bytes = []
