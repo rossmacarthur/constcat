@@ -254,20 +254,8 @@ macro_rules! concat_slices {
         $crate::_concat_slices!([$init; $T]: $($s),*)
     };
 
-    ([char]: $($s:expr),* $(,)?) => {
-        $crate::concat_slices!(['\x00'; char]: $($s),*)
-    };
-
-    ([f32]: $($s:expr),* $(,)?) => {
-        $crate::concat_slices!([0.0; f32]: $($s),*)
-    };
-
-    ([f64]: $($s:expr),* $(,)?) => {
-        $crate::concat_slices!([0.0; f64]: $($s),*)
-    };
-
     ([$T:ty]: $($s:expr),* $(,)?) => {
-        $crate::concat_slices!([0; $T]: $($s),*)
+        $crate::concat_slices!([0 as $T; $T]: $($s),*)
     };
 }
 
