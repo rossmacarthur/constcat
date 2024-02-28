@@ -256,7 +256,6 @@ macro_rules! _concat_slices {
     }};
 
     ([$T:ty]: $($s:expr),+) => {{
-        extern crate core;
         $(
             const _: &[$T] = $s; // require constants
         )*
