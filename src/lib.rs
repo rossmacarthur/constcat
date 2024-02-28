@@ -290,7 +290,7 @@ macro_rules! _concat_slices {
             // Mentioned case is handled above as a comp time panic above.
             //
             // See for more information: https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
-            unsafe {core::mem::transmute(arr)}
+            unsafe { $crate::core::mem::transmute(arr) }
         };
         &ARR
     }};
