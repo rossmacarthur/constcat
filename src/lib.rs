@@ -262,7 +262,7 @@ macro_rules! _concat_slices {
         )*
         const LEN: usize = $( $s.len() + )* 0;
         const ARR: [$T; LEN] = {
-        use core::mem::MaybeUninit;
+            use $crate::core::mem::MaybeUninit;
             let mut arr: [MaybeUninit<$T>; LEN] = [MaybeUninit::zeroed(); LEN];
             let mut base: usize = 0;
             $({
