@@ -268,12 +268,13 @@ macro_rules! _concat_slices {
     }};
 
     ([$init:expr; $T:ty]: $($s:expr),+) => {{
+        extern crate core;
         $(
             const _: &[$T] = $s; // require constants
         )*
         const LEN: usize = $( $s.len() + )* 0;
         const ARR: [$T; LEN] = {
-            let mut arr: [$T; LEN] = [$init; LEN];
+            let mut arr: [$T; LEN] = unsafe {core::mem::MaybeUninit::zeroed().assume_init()};
             let mut base: usize = 0;
             $({
                 let mut i = 0;
