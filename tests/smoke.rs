@@ -95,6 +95,9 @@ fn concat_slices_smoke() {
     const DEF: I = I(123);
     const TEST10: &[I] = concat_slices!([DEF; I]: &[I(1), I(2), I(3)]);
     assert_eq!(TEST10, [I(1), I(2), I(3)]);
+
+    const TEST11: &[I] = concat_slices!([I]: &[I(1), I(2), I(3)]);
+    assert_eq!(TEST10, TEST11);
 }
 
 #[test]
