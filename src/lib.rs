@@ -251,41 +251,52 @@ macro_rules! _maybe_std_concat_bytes {
 #[macro_export]
 macro_rules! concat_slices {
     ([$init:expr; $T:ty]: $($s:expr),* $(,)?) => {
-        $crate::_concat_slices!([$init; $T]: $($s),*)
+        $crate::_concat_slices!([$T]: $($s),*)
     };
 
+    // Left in for backwards compatiblity.
     ([$T:ty]: $($s:expr),* $(,)?) => {
-        $crate::concat_slices!([0 as $T; $T]: $($s),*)
+        $crate::_concat_slices!([$T]: $($s),*)
     };
 }
 
 #[doc(hidden)]
 #[macro_export]
 macro_rules! _concat_slices {
-    ([$init:expr; $T:ty]:) => {{
+    ([$T:ty]:) => {{
         const ARR: [$T; 0] = [];
         &ARR
     }};
 
-    ([$init:expr; $T:ty]: $($s:expr),+) => {{
+    ([$T:ty]: $($s:expr),+) => {{
         extern crate core;
         $(
             const _: &[$T] = $s; // require constants
         )*
         const LEN: usize = $( $s.len() + )* 0;
         const ARR: [$T; LEN] = {
-            let mut arr: [$T; LEN] = unsafe {core::mem::MaybeUninit::zeroed().assume_init()};
+        use core::mem::MaybeUninit;
+            let mut arr: [MaybeUninit<$T>; LEN] = [MaybeUninit::zeroed(); LEN];
             let mut base: usize = 0;
             $({
                 let mut i = 0;
                 while i < $s.len() {
-                    arr[base + i] = $s[i];
+                    // Ideally this should use `MaybeUninit::write` once it is made const.
+                    // The write method mentioned above: https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#method.write
+                    // It's relevant github issue: https://github.com/rust-lang/rust/issues/62061
+                    arr[base + i] = MaybeUninit::new($s[i]);
                     i += 1;
                 }
                 base += $s.len();
             })*
             if base != LEN { panic!("invalid length"); }
-            arr
+
+            // SAFETY: Transmuting an array of initialized MaybeUninit's is completely safe.
+            // The only way it would be UB is where `base` and the array length (`LEN`) is
+            // different, as it would end up assuming the non-initialized items do exist.
+            // Mentioned case is handled above as a comp time panic above.
+            // See https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
+            unsafe {core::mem::transmute(arr)}
         };
         &ARR
     }};
