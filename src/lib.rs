@@ -63,17 +63,12 @@
 //! const HEADER: &[i32] = concat_slices!([i32]: MAGIC, &[0, VERSION]);
 //! ```
 //!
-//! If the type is not a std integer, `f32`, `f64`, or `char` type then you must
-//! also provide an initializer expression with the type, in the form `[init;
-//! T]: `. This also works for custom types as long as the type and initializer
-//! expression is able to be specified in an array initializer expression.
-//!
 //! ```
 //! # use constcat::concat_slices;
 //! #
 //! const PRIMARIES: &'static [(u8, u8, u8)] = &[(255, 0, 0), (0, 255, 0), (0, 0, 255)];
 //! const SECONDARIES: &'static [(u8, u8, u8)] = &[(255, 255, 0), (255, 0, 255), (0, 255, 255)];
-//! const COLORS: &[(u8, u8, u8)] = concat_slices!([(0, 0, 0); (u8, u8, u8)]: PRIMARIES, SECONDARIES);
+//! const COLORS: &[(u8, u8, u8)] = concat_slices!([(u8, u8, u8)]: PRIMARIES, SECONDARIES);
 //! ```
 //!
 //! [`std::concat!`]: core::concat
@@ -225,26 +220,18 @@ macro_rules! _maybe_std_concat_bytes {
 ///   concat_slices!([usize]: /* ... */);
 ///   ```
 ///
-/// - If the type is not a std integer, `f32`, `f64`, or `char` type then you
-///   must also provide an initializer expression.
-///
 ///   ```
 ///   # use constcat::concat_slices;
-///   concat_slices!([(0, 0, 0); (u8, u8, u8)]: /* ... */);
+///   concat_slices!([(u8, u8, u8)]: /* ... */);
 ///   ```
-/// - This also works for custom types as long as the type and initializer
-///   expression is able to be specified in an array initializer expression.
+/// - This also works for custom types as long as the type implement `Copy`.
 ///
 ///   ```
 ///   # use constcat::concat_slices;
 ///   #[derive(Clone, Copy)]
 ///   struct i256(i128, i128);
 ///
-///   impl i256 {
-///       const fn new() -> Self { Self(0, 0) }
-///   }
-///
-///   concat_slices!([i256::new(); i256]: /* ... */);
+///   concat_slices!([i256]: /* ... */);
 ///   ```
 ///
 /// See the [crate documentation][crate] for examples.
