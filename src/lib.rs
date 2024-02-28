@@ -280,12 +280,16 @@ macro_rules! _concat_slices {
 
             // SAFETY: Transmuting an array of initialized MaybeUninit's is completely safe, where
             // all of its items are initialized.
+            // As per the documentation of `core::mem::MaybeUninit`: "https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#layout-1"
+            // This means it is safe to transmute as the slices must be the same type in order to
+            // be placed in the array. In such case the user does provide slices with different
+            // types, it would give a compile error before even reaching the unsafe block.
             //
             // The only way it would be UB is where `base` and the array length (`LEN`) is
             // different, as it would end up assuming the non-initialized items do exist.
             // Mentioned case is handled above as a comp time panic above.
             //
-            // See https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
+            // See for more information: https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
             unsafe {core::mem::transmute(arr)}
         };
         &ARR
