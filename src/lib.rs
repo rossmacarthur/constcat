@@ -291,10 +291,13 @@ macro_rules! _concat_slices {
             })*
             if base != LEN { panic!("invalid length"); }
 
-            // SAFETY: Transmuting an array of initialized MaybeUninit's is completely safe.
+            // SAFETY: Transmuting an array of initialized MaybeUninit's is completely safe, where
+            // all of its items are initialized.
+            //
             // The only way it would be UB is where `base` and the array length (`LEN`) is
             // different, as it would end up assuming the non-initialized items do exist.
             // Mentioned case is handled above as a comp time panic above.
+            //
             // See https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
             unsafe {core::mem::transmute(arr)}
         };
