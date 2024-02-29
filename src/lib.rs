@@ -237,11 +237,6 @@ macro_rules! _maybe_std_concat_bytes {
 /// See the [crate documentation][crate] for examples.
 #[macro_export]
 macro_rules! concat_slices {
-    ([$init:expr; $T:ty]: $($s:expr),* $(,)?) => {
-        $crate::_concat_slices!([$T]: $($s),*)
-    };
-
-    // Left in for backwards compatiblity.
     ([$T:ty]: $($s:expr),* $(,)?) => {
         $crate::_concat_slices!([$T]: $($s),*)
     };
