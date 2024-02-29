@@ -69,19 +69,54 @@ fn concat_slices_smoke() {
     const TEST2: &[i32] = concat_slices!([i32]: &[1, 2, 3],);
     assert_eq!(TEST2, [1, 2, 3]);
 
-    const TEST3: &[i32] = concat_slices!([i32]: &[1, 2, 3], TEST2);
-    assert_eq!(TEST3, [1, 2, 3, 1, 2, 3]);
+    const TEST3: &[i32] = concat_slices!([i32]: TEST0, TEST1, TEST2);
+    assert_eq!(TEST3, &[1, 2, 3]);
 
-    const TEST4: &[f32] = concat_slices!([f32]: &[1.], &[2.], &[3.]);
-    assert_eq!(TEST4, [1., 2., 3.]);
+    const TEST4: &[i32] = concat_slices!([i32]: &[1, 2, 3], TEST2);
+    assert_eq!(TEST4, [1, 2, 3, 1, 2, 3]);
 
-    const TEST5: &[char] = concat_slices!([char]: &['a'], &['b'], &['c']);
-    assert_eq!(TEST5, ['a', 'b', 'c']);
+    const TEST5: &[f32] = concat_slices!([f32]: &[1.], &[2.], &[3.]);
+    assert_eq!(TEST5, [1., 2., 3.]);
+
+    const TEST6: &[f32] = concat_slices!([f32]: &[4., 5., 6.]);
+    assert_eq!(TEST6, [4., 5., 6.]);
+
+    const TEST7: &[f32] = concat_slices!([f32]: TEST5, TEST6);
+    assert_eq!(TEST7, [1., 2., 3., 4., 5., 6.]);
+
+    const TEST8: &[char] = concat_slices!([char]: &['a'], &['b'], &['c']);
+    assert_eq!(TEST8, ['a', 'b', 'c']);
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct I(i32);
-    const TEST6: &[I] = concat_slices!([I]: &[I(1), I(2), I(3)]);
-    assert_eq!(TEST6, [I(1), I(2), I(3)]);
+    struct I<T: Sized + Clone>(T);
+    const TEST9: &[I<i32>] = concat_slices!([I<i32>]: &[I(1), I(2), I(3)]);
+    assert_eq!(TEST9, [I(1), I(2), I(3)]);
+
+    const TEST10: &[I<i32>] = concat_slices!([I<i32>]: &[I(4), I(5), I(6)]);
+    assert_eq!(TEST10, [I(4), I(5), I(6)]);
+
+    const TEST11: &[I<i32>] = concat_slices!([I<i32>]: TEST9, TEST10);
+    assert_eq!(TEST11, [I(1), I(2), I(3), I(4), I(5), I(6)]);
+
+    const TEST12: &[I<&str>] =
+        concat_slices!([I<&str>]: &[I("Hello")], &[I("Meh")], &[I("Goodbye")]);
+    assert_eq!(TEST12, [I("Hello"), I("Meh"), I("Goodbye")]);
+
+    const TEST13: &[I<&str>] = concat_slices!([I<&str>]: &[I("One"), I("More"), I("Try")]);
+    assert_eq!(TEST13, [I("One"), I("More"), I("Try")]);
+
+    const TEST14: &[I<&str>] = concat_slices!([I<&str>]: TEST12, TEST13);
+    assert_eq!(
+        TEST14,
+        [
+            I("Hello"),
+            I("Meh"),
+            I("Goodbye"),
+            I("One"),
+            I("More"),
+            I("Try")
+        ]
+    );
 }
 
 #[test]
