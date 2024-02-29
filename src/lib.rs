@@ -63,17 +63,12 @@
 //! const HEADER: &[i32] = concat_slices!([i32]: MAGIC, &[0, VERSION]);
 //! ```
 //!
-//! If the type is not a std integer, `f32`, `f64`, or `char` type then you must
-//! also provide an initializer expression with the type, in the form `[init;
-//! T]: `. This also works for custom types as long as the type and initializer
-//! expression is able to be specified in an array initializer expression.
-//!
 //! ```
 //! # use constcat::concat_slices;
 //! #
 //! const PRIMARIES: &'static [(u8, u8, u8)] = &[(255, 0, 0), (0, 255, 0), (0, 0, 255)];
 //! const SECONDARIES: &'static [(u8, u8, u8)] = &[(255, 255, 0), (255, 0, 255), (0, 255, 255)];
-//! const COLORS: &[(u8, u8, u8)] = concat_slices!([(0, 0, 0); (u8, u8, u8)]: PRIMARIES, SECONDARIES);
+//! const COLORS: &[(u8, u8, u8)] = concat_slices!([(u8, u8, u8)]: PRIMARIES, SECONDARIES);
 //! ```
 //!
 //! [`std::concat!`]: core::concat
@@ -225,66 +220,71 @@ macro_rules! _maybe_std_concat_bytes {
 ///   concat_slices!([usize]: /* ... */);
 ///   ```
 ///
-/// - If the type is not a std integer, `f32`, `f64`, or `char` type then you
-///   must also provide an initializer expression.
-///
 ///   ```
 ///   # use constcat::concat_slices;
-///   concat_slices!([(0, 0, 0); (u8, u8, u8)]: /* ... */);
+///   concat_slices!([(u8, u8, u8)]: /* ... */);
 ///   ```
-/// - This also works for custom types as long as the type and initializer
-///   expression is able to be specified in an array initializer expression.
+/// - This also works for custom types as long as the type implement `Copy`.
 ///
 ///   ```
 ///   # use constcat::concat_slices;
 ///   #[derive(Clone, Copy)]
 ///   struct i256(i128, i128);
 ///
-///   impl i256 {
-///       const fn new() -> Self { Self(0, 0) }
-///   }
-///
-///   concat_slices!([i256::new(); i256]: /* ... */);
+///   concat_slices!([i256]: /* ... */);
 ///   ```
 ///
 /// See the [crate documentation][crate] for examples.
 #[macro_export]
 macro_rules! concat_slices {
-    ([$init:expr; $T:ty]: $($s:expr),* $(,)?) => {
-        $crate::_concat_slices!([$init; $T]: $($s),*)
-    };
-
     ([$T:ty]: $($s:expr),* $(,)?) => {
-        $crate::concat_slices!([0 as $T; $T]: $($s),*)
+        $crate::_concat_slices!([$T]: $($s),*)
     };
 }
 
 #[doc(hidden)]
 #[macro_export]
 macro_rules! _concat_slices {
-    ([$init:expr; $T:ty]:) => {{
+    ([$T:ty]:) => {{
         const ARR: [$T; 0] = [];
         &ARR
     }};
 
-    ([$init:expr; $T:ty]: $($s:expr),+) => {{
+    ([$T:ty]: $($s:expr),+) => {{
         $(
             const _: &[$T] = $s; // require constants
         )*
         const LEN: usize = $( $s.len() + )* 0;
         const ARR: [$T; LEN] = {
-            let mut arr: [$T; LEN] = [$init; LEN];
+            use $crate::core::mem::MaybeUninit;
+            let mut arr: [MaybeUninit<$T>; LEN] = [MaybeUninit::zeroed(); LEN];
             let mut base: usize = 0;
             $({
                 let mut i = 0;
                 while i < $s.len() {
-                    arr[base + i] = $s[i];
+                    // Ideally this should use `MaybeUninit::write` once it is made const.
+                    // The write method mentioned above: https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#method.write
+                    // It's relevant github issue: https://github.com/rust-lang/rust/issues/62061
+                    arr[base + i] = MaybeUninit::new($s[i]);
                     i += 1;
                 }
                 base += $s.len();
             })*
             if base != LEN { panic!("invalid length"); }
-            arr
+
+            // SAFETY: Transmuting an array of initialized MaybeUninit's is completely safe, where
+            // all of its items are initialized.
+            // As per the documentation of `core::mem::MaybeUninit`: "https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#layout-1"
+            // This means it is safe to transmute, as the slices must be the same type in order to
+            // be placed in the array. In such case the user does provide slices with different
+            // types, it would give a compile error before even reaching the unsafe block.
+            //
+            // The only way it would be UB is where `base` and the array length (`LEN`) is
+            // different, as it would end up assuming the non-initialized items do exist.
+            // Mentioned case is handled above as a comp time panic above.
+            //
+            // See for more information: https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
+            unsafe { $crate::core::mem::transmute(arr) }
         };
         &ARR
     }};
