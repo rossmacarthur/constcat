@@ -1,6 +1,6 @@
 [package]
 name = "constcat"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["Ross MacArthur <ross@macarthur.io>"]
 edition = "2018"
 description = "concat! with support for const variables and expressions"
