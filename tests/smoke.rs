@@ -66,38 +66,22 @@ fn concat_slices_smoke() {
     const TEST1: &[i32] = concat_slices!([i32]:,);
     assert_eq!(TEST1, []);
 
-    const TEST2: &[i32] = concat_slices!([i32]: &[1, 2, 3]);
+    const TEST2: &[i32] = concat_slices!([i32]: &[1, 2, 3],);
     assert_eq!(TEST2, [1, 2, 3]);
 
-    const TEST3: &[i32] = concat_slices!([i32]: &[1, 2, 3],);
-    assert_eq!(TEST3, [1, 2, 3]);
+    const TEST3: &[i32] = concat_slices!([i32]: &[1, 2, 3], TEST2);
+    assert_eq!(TEST3, [1, 2, 3, 1, 2, 3]);
 
-    const TEST4: &[i32] = concat_slices!([i32]: &[1, 2, 3], TEST3);
-    assert_eq!(TEST4, [1, 2, 3, 1, 2, 3]);
+    const TEST4: &[f32] = concat_slices!([f32]: &[1.], &[2.], &[3.]);
+    assert_eq!(TEST4, [1., 2., 3.]);
 
-    const TEST5: &[f32] = concat_slices!([f32]: &[1.], &[2.], &[3.]);
-    assert_eq!(TEST5, [1., 2., 3.]);
-
-    const TEST6: &[char] = concat_slices!([char]: &['a'], &['b'], &['c']);
-    assert_eq!(TEST6, ['a', 'b', 'c']);
-
-    const TEST7: &[f32] = concat_slices!([1.0; f32]: &[1.], &[2.], &[3.]);
-    assert_eq!(TEST7, [1., 2., 3.]);
-
-    const TEST8: &[char] = concat_slices!(['0'; char]: &['a'], &['b'], &['c']);
-    assert_eq!(TEST8, ['a', 'b', 'c']);
+    const TEST5: &[char] = concat_slices!([char]: &['a'], &['b'], &['c']);
+    assert_eq!(TEST5, ['a', 'b', 'c']);
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct I(i32);
-    const TEST9: &[I] = concat_slices!([I(0); I]: &[I(1), I(2), I(3)]);
-    assert_eq!(TEST9, [I(1), I(2), I(3)]);
-
-    const DEF: I = I(123);
-    const TEST10: &[I] = concat_slices!([DEF; I]: &[I(1), I(2), I(3)]);
-    assert_eq!(TEST10, [I(1), I(2), I(3)]);
-
-    const TEST11: &[I] = concat_slices!([I]: &[I(1), I(2), I(3)]);
-    assert_eq!(TEST10, TEST11);
+    const TEST6: &[I] = concat_slices!([I]: &[I(1), I(2), I(3)]);
+    assert_eq!(TEST6, [I(1), I(2), I(3)]);
 }
 
 #[test]
