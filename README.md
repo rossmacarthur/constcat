@@ -67,14 +67,10 @@ const VERSION: i32 = 1;
 const HEADER: &[i32] = concat_slices!([i32]: MAGIC, &[0, VERSION]);
 ```
 
-If the type is not a std integer, `f32`, `f64`, or `char` type then you must
-also provide an initializer expression with the type, in the form `[init; T]: `. This also works for custom types as long as the type and initializer
-expression is able to be specified in an array initializer expression.
-
 ```rust
 const PRIMARIES: &'static [(u8, u8, u8)] = &[(255, 0, 0), (0, 255, 0), (0, 0, 255)];
 const SECONDARIES: &'static [(u8, u8, u8)] = &[(255, 255, 0), (255, 0, 255), (0, 255, 255)];
-const COLORS: &[(u8, u8, u8)] = concat_slices!([(0, 0, 0); (u8, u8, u8)]: PRIMARIES, SECONDARIES);
+const COLORS: &[(u8, u8, u8)] = concat_slices!([(u8, u8, u8)]: PRIMARIES, SECONDARIES);
 ```
 
 [`std::concat!`]: core::concat
