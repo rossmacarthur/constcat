@@ -73,6 +73,10 @@
 //!
 //! [`std::concat!`]: core::concat
 //! [`std::concat_bytes!`]: core::concat_bytes
+//!
+//! ## MSRV
+//!
+//! This crate supports Rust 1.60 and above.
 
 #![no_std]
 
@@ -113,6 +117,7 @@ macro_rules! _concat {
     }};
 
     (@impl $($s:expr),+) => {{
+        use $crate::core::primitive::{str, u8};
         $(
             const _: &str = $s; // require str constants
         )*
@@ -184,6 +189,7 @@ macro_rules! _concat_bytes {
     }};
 
     (@impl $($s:expr),+) => {{
+        use $crate::core::primitive::u8;
         $crate::concat_slices!([u8]: $($s),+)
     }};
 }
@@ -241,7 +247,6 @@ macro_rules! concat_slices {
         $crate::_concat_slices!([$T]: $($s),*)
     };
 }
-
 #[doc(hidden)]
 #[macro_export]
 macro_rules! _concat_slices {
@@ -251,13 +256,20 @@ macro_rules! _concat_slices {
     }};
 
     ([$T:ty]: $($s:expr),+) => {{
+        use $crate::core::mem::MaybeUninit;
+        use $crate::core::primitive::{u8, usize};
+        use $crate::core::mem;
         $(
             const _: &[$T] = $s; // require constants
         )*
+        const TSIZE: usize = mem::size_of::<$T>();
+        union TypeAsBytes<X: Copy> { bytes: [u8; TSIZE], inner: MaybeUninit<X> }
+        const ZERO: TypeAsBytes<$T> = TypeAsBytes { bytes: [0; TSIZE] };
         const LEN: usize = $( $s.len() + )* 0;
         const ARR: [$T; LEN] = {
-            use $crate::core::mem::MaybeUninit;
-            let mut arr: [MaybeUninit<$T>; LEN] = [MaybeUninit::zeroed(); LEN];
+            // Ideally we should use MaybeUninit::zeroed() but we want to
+            // support older versions of Rust.
+            let mut arr: [MaybeUninit<$T>; LEN] = [ unsafe { ZERO.inner }; LEN];
             let mut base: usize = 0;
             $({
                 let mut i = 0;
@@ -288,7 +300,7 @@ macro_rules! _concat_slices {
             //
             // See for more information:
             // https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
-            unsafe { $crate::core::mem::transmute(arr) }
+            unsafe { mem::transmute(arr) }
         };
         &ARR
     }};

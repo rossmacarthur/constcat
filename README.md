@@ -73,6 +73,10 @@ const SECONDARIES: &'static [(u8, u8, u8)] = &[(255, 255, 0), (255, 0, 255), (0,
 const COLORS: &[(u8, u8, u8)] = concat_slices!([(u8, u8, u8)]: PRIMARIES, SECONDARIES);
 ```
 
+### MSRV
+
+This crate supports Rust 1.60 and above.
+
 [`std::concat!`]: core::concat
 
 ## License
