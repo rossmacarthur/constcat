@@ -10,7 +10,16 @@ repository = "https://github.com/rossmacarthur/constcat"
 license = "MIT OR Apache-2.0"
 keywords = ["concat", "const"]
 categories = ["no-std", "rust-patterns"]
+include = ["src/lib.rs", "LICENSE-*", "README.md"]
 
 [features]
 # Private API: compiles the tests for the concat_bytes! macro
 _bytes = []
+
+[[bench]]
+name = "large"
+harness = false
+
+[[bench]]
+name = "many"
+harness = false

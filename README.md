@@ -75,7 +75,7 @@ const COLORS: &[(u8, u8, u8)] = concat_slices!([(u8, u8, u8)]: PRIMARIES, SECOND
 
 ### MSRV
 
-This crate supports Rust 1.60 and above.
+This crate supports Rust 1.66 and above.
 
 [`std::concat!`]: core::concat
 

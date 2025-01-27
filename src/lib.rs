@@ -76,12 +76,14 @@
 //!
 //! ## MSRV
 //!
-//! This crate supports Rust 1.60 and above.
+//! This crate supports Rust 1.66 and above.
 
 #![no_std]
 
 #[doc(hidden)]
 pub use core;
+
+use core::mem::MaybeUninit;
 
 ////////////////////////////////////////////////////////////////////////////////
 // concat!
@@ -256,9 +258,9 @@ macro_rules! _concat_slices {
     }};
 
     ([$T:ty]: $($s:expr),+) => {{
+        use $crate::core::mem;
         use $crate::core::mem::MaybeUninit;
         use $crate::core::primitive::{u8, usize};
-        use $crate::core::mem;
         $(
             const _: &[$T] = $s; // require constants
         )*
@@ -267,41 +269,60 @@ macro_rules! _concat_slices {
         const ZERO: TypeAsBytes<$T> = TypeAsBytes { bytes: [0; TSIZE] };
         const LEN: usize = $( $s.len() + )* 0;
         const ARR: [$T; LEN] = {
+            // SAFETY:
+            // This is safe because inner is a `MaybeUninit` we will never read
+            // from it since in concat we overwrite every element.
+            //
             // Ideally we should use MaybeUninit::zeroed() but we want to
-            // support older versions of Rust.
-            let mut arr: [MaybeUninit<$T>; LEN] = [ unsafe { ZERO.inner }; LEN];
-            let mut base: usize = 0;
-            $({
-                let mut i = 0;
-                while i < $s.len() {
-                    // Ideally this should use `MaybeUninit::write` once it is
-                    // made const.
-                    // Documentation: https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#method.write
-                    // Tracking issue: https://github.com/rust-lang/rust/issues/63567
-                    arr[base + i] = MaybeUninit::new($s[i]);
-                    i += 1;
-                }
-                base += $s.len();
-            })*
-            if base != LEN { panic!("invalid length"); }
-
+            // support older versions of Rust and that was only stabilized
+            // in Rust 1.75.
+            let zero = unsafe { ZERO.inner };
+            let arr = $crate::concat::<LEN, $T>(zero, &[$($s),+]);
             // SAFETY:
             // As per the documentation of `core::mem::MaybeUninit`:
             // <https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#layout-1>
             //
-            // MaybeUninit<T> is guaranteed to have the same size, alignment, and ABI as T.
+            // MaybeUninit<T> is guaranteed to have the same size, alignment,
+            // and ABI as T.
             //
             // This means as long as all of the MaybeUninits are initialized
             // then it is safe to transmute a MaybeUninit<T> to T, and therefore
             // also [MaybeUninit<T>; N] to [T; N]. We know that all of the
-            // elements are initialized because in the loop above the number of
-            // initialized elements are computed and then there is a guard that
-            // compares that to the total length of the array.
+            // elements are initialized because in the function call above the
+            // number of initialized elements are computed and then there is a
+            // guard that compares that to the total length of the array.
             //
             // See for more information:
             // https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
-            unsafe { mem::transmute(arr) }
+            unsafe { $crate::core::mem::transmute(arr) }
         };
         &ARR
     }};
+}
+
+#[doc(hidden)]
+pub const fn concat<const LEN: usize, T: Copy>(
+    zero: MaybeUninit<T>,
+    slices: &[&[T]],
+) -> [MaybeUninit<T>; LEN] {
+    let mut arr: [MaybeUninit<T>; LEN] = [zero; LEN];
+    let mut base = 0;
+    let mut i = 0;
+    while i < slices.len() {
+        let slice = slices[i];
+        let mut j = 0;
+        while j < slice.len() {
+            // Ideally this should use `MaybeUninit::write` but we want to
+            // support older versions of Rust and that was only stabilized in
+            // Rust 1.85.
+            arr[base + j] = MaybeUninit::new(slice[j]);
+            j += 1;
+        }
+        base += slice.len();
+        i += 1;
+    }
+    if base != LEN {
+        panic!("invalid length");
+    }
+    arr
 }
