@@ -2,7 +2,7 @@
 
 ## 0.6.0
 
-*Unreleased*
+*January 28th, 2025*
 
 - [Improve macro performance][ad3cb1a1]. Improves performance of the macro
   particularly when concatenating a large number of strs/slices. This change
