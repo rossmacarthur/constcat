@@ -1,5 +1,14 @@
 # 📝 Release notes
 
+## 0.6.1
+
+*May 18th, 2025*
+
+- [Simplify internal concat implementation][3d0e98ad]. Removes some unnecessary
+  `unsafe` code.
+
+[3d0e98ad]: https://github.com/rossmacarthur/constcat/commit/3d0e98adac4c1716147917ec1c109a2d1c8cccf1
+
 ## 0.6.0
 
 *January 28th, 2025*
