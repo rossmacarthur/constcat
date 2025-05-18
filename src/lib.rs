@@ -258,26 +258,12 @@ macro_rules! _concat_slices {
     }};
 
     ([$T:ty]: $($s:expr),+) => {{
-        use $crate::core::mem;
-        use $crate::core::mem::MaybeUninit;
-        use $crate::core::primitive::{u8, usize};
         $(
             const _: &[$T] = $s; // require constants
         )*
-        const TSIZE: usize = mem::size_of::<$T>();
-        union TypeAsBytes<X: Copy> { bytes: [u8; TSIZE], inner: MaybeUninit<X> }
-        const ZERO: TypeAsBytes<$T> = TypeAsBytes { bytes: [0; TSIZE] };
-        const LEN: usize = $( $s.len() + )* 0;
+        const LEN: $crate::core::primitive::usize = $( $s.len() + )* 0;
         const ARR: [$T; LEN] = {
-            // SAFETY:
-            // This is safe because inner is a `MaybeUninit` we will never read
-            // from it since in concat we overwrite every element.
-            //
-            // Ideally we should use MaybeUninit::zeroed() but we want to
-            // support older versions of Rust and that was only stabilized
-            // in Rust 1.75.
-            let zero = unsafe { ZERO.inner };
-            let arr = $crate::concat::<LEN, $T>(zero, &[$($s),+]);
+            let arr = $crate::concat::<LEN, $T>(&[$($s),+]);
             // SAFETY:
             // As per the documentation of `core::mem::MaybeUninit`:
             // <https://doc.rust-lang.org/core/mem/union.MaybeUninit.html#layout-1>
@@ -301,11 +287,8 @@ macro_rules! _concat_slices {
 }
 
 #[doc(hidden)]
-pub const fn concat<const LEN: usize, T: Copy>(
-    zero: MaybeUninit<T>,
-    slices: &[&[T]],
-) -> [MaybeUninit<T>; LEN] {
-    let mut arr: [MaybeUninit<T>; LEN] = [zero; LEN];
+pub const fn concat<const LEN: usize, T: Copy>(slices: &[&[T]]) -> [MaybeUninit<T>; LEN] {
+    let mut arr: [MaybeUninit<T>; LEN] = [MaybeUninit::uninit(); LEN];
     let mut base = 0;
     let mut i = 0;
     while i < slices.len() {
