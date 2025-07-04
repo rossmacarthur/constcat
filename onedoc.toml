@@ -1,0 +1,8 @@
+[links]
+"&str" = "https://doc.rust-lang.org/std/primitive.str.html"
+"&[u8]" = "https://doc.rust-lang.org/std/primitive.slice.html"
+"&[T]" = "https://doc.rust-lang.org/std/primitive.slice.html"
+"std::concat!" = "https://doc.rust-lang.org/std/macro.concat.html"
+"concat!" = "https://docs.rs/constcat/latest/constcat/macro.concat.html"
+"concat_bytes!" = "https://docs.rs/constcat/latest/constcat/macro.concat_bytes.html"
+"concat_slices!" = "https://docs.rs/constcat/latest/constcat/macro.concat_slices.html"
