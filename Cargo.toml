@@ -2,7 +2,7 @@
 name = "constcat"
 version = "0.6.1"
 authors = ["Ross MacArthur <ross@macarthur.io>"]
-edition = "2018"
+edition = "2021"
 rust-version = "1.66"
 description = "concat! with support for const variables and expressions"
 readme = "README.md"
